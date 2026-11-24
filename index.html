@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drop-off: submit your computer output</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF3F1; --card:#FFFFFF; --ink:#12302B; --muted:#5B726D;
+    --line:#C9D8D3; --accent:#0E7C66; --accent-ink:#FFFFFF; --warn:#B3261E; --ok:#0E7C66; --drop:#E1EEE9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#0E1C19; --card:#15292500; --ink:#E6F1EE; --muted:#93AAA4; --line:#2C4640; --accent:#3FC1A5; --accent-ink:#06211B; --warn:#FF8A80; --ok:#3FC1A5; --drop:#173029}
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh;display:grid;place-items:start center;padding:32px 16px}
+  main{width:100%;max-width:640px}
+  h1{font-size:clamp(2rem,6vw,3rem);line-height:1.05;margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+  .lede{color:var(--muted);margin:0 0 24px}
+  form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:16px}
+  @media (prefers-color-scheme:dark){form{background:#152925}}
+  label{display:grid;gap:6px;font-weight:600;font-size:.95rem}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:520px){.row{grid-template-columns:1fr}}
+  input,select,textarea{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+  select option{color:#000}
+  input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,.drop:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  .drop{border:2px dashed var(--accent);background:var(--drop);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:background .15s,transform .15s}
+  .drop.over{transform:scale(1.01);background:color-mix(in srgb,var(--accent) 20%,var(--drop))}
+  .drop strong{display:block;font-size:1.15rem}
+  .drop span{color:var(--muted);font-size:.9rem}
+  .file{display:none;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .file.show{display:flex}
+  .file b{overflow-wrap:anywhere}
+  .file small{color:var(--muted);display:block}
+  .file button{background:none;border:0;color:var(--warn);font:inherit;font-weight:600;cursor:pointer}
+  .go{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:14px;font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer}
+  .go:disabled{opacity:.55;cursor:not-allowed}
+  .msg{min-height:1.4em;font-weight:600}
+  .msg.err{color:var(--warn)} .msg.ok{color:var(--ok)}
+  .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;display:none}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .done{display:none;text-align:center;padding:24px 8px}
+  .done h2{margin:0 0 6px}
+  .done button{margin-top:12px;background:none;border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Drop off your work</h1>
+  <p class="lede">Upload your PDF, Word file or picture. Your teacher sees it right away.</p>
+
+  <form id="f" novalidate>
+    <div class="row">
+      <label>Full name
+        <input id="name" required autocomplete="name" placeholder="Maria Santos">
+      </label>
+      <label>Section / class
+        <input id="section" placeholder="e.g. Grade 10 – Rizal">
+      </label>
+    </div>
+    <label>Activity
+      <select id="activity" required></select>
+    </label>
+
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a file to upload">
+      <strong>Drag your file here, or tap to browse</strong>
+      <span>PDF, Word (.doc, .docx) or picture (.jpg, .png). Up to 10 MB.</span>
+      <input id="file" type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,application/pdf,image/*">
+    </div>
+    <div class="file" id="chosen" aria-live="polite">
+      <div><b id="fname"></b><small id="fsize"></small></div>
+      <button type="button" id="clear">Remove</button>
+    </div>
+
+    <label>Note for your teacher (optional)
+      <textarea id="note" rows="2" maxlength="300"></textarea>
+    </label>
+
+    <div class="bar" id="bar"><i id="barfill"></i></div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+    <button class="go" id="go" type="submit">Upload file</button>
+  </form>
+
+  <div class="done" id="done">
+    <h2>Received. Thank you!</h2>
+    <p id="receipt" style="color:var(--muted);margin:0"></p>
+    <button id="again" type="button">Upload another file</button>
+  </div>
+</main>
+
+<script>
+/* ====== SETTINGS: edit these two ====== */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpWlaPFpW5tdIWv2WJt2hWwxJqLL9Y-gES9gD-9hCH09M62Ott86x0K9Fc4ZWcJQM-5g/exec";
+const ACTIVITIES = ["Activity 1", "Activity 2", "Activity 3", "Quiz output", "Project", "Other"];
+/* ====================================== */
+
+const MAX = 10 * 1024 * 1024;
+const OK_EXT = ["pdf","doc","docx","jpg","jpeg","png","gif","webp"];
+const $ = id => document.getElementById(id);
+let file = null;
+
+$("activity").innerHTML = '<option value="">Choose an activity</option>' +
+  ACTIVITIES.map(a => `<option>${a}</option>`).join("");
+
+// Remember name and section on this device
+try { $("name").value = localStorage.getItem("dd_name") || ""; $("section").value = localStorage.getItem("dd_section") || ""; } catch(e){}
+
+const drop = $("drop"), input = $("file");
+drop.onclick = () => input.click();
+drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } };
+["dragenter","dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => pick(e.dataTransfer.files[0]));
+input.onchange = () => pick(input.files[0]);
+$("clear").onclick = () => setFile(null);
+
+function say(t, kind){ const m=$("msg"); m.textContent=t; m.className="msg "+(kind||""); }
+function size(b){ return b > 1048576 ? (b/1048576).toFixed(1)+" MB" : Math.max(1,Math.round(b/1024))+" KB"; }
+
+function pick(f){
+  if (!f) return;
+  const ext = f.name.split(".").pop().toLowerCase();
+  if (!OK_EXT.includes(ext)) return say("That file type isn't accepted. Upload a PDF, Word file or picture.", "err");
+  if (f.size > MAX) return say("That file is " + size(f.size) + ". The limit is 10 MB. Compress it and try again.", "err");
+  say(""); setFile(f);
+}
+function setFile(f){
+  file = f; if (!f) input.value = "";
+  $("chosen").classList.toggle("show", !!f);
+  drop.style.display = f ? "none" : "";
+  if (f){ $("fname").textContent = f.name; $("fsize").textContent = size(f.size); }
+}
+
+function toBase64(f){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1]);
+    r.onerror = () => rej(new Error("Couldn't read the file."));
+    r.readAsDataURL(f);
+  });
+}
+
+$("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = $("name").value.trim(), activity = $("activity").value;
+  if (!name) return say("Enter your full name.", "err");
+  if (!activity) return say("Choose an activity.", "err");
+  if (!file) return say("Choose a file to upload.", "err");
+  if (SCRIPT_URL.startsWith("PASTE")) return say("This page isn't connected yet. Ask your teacher to add the Apps Script URL.", "err");
+
+  try { localStorage.setItem("dd_name", name); localStorage.setItem("dd_section", $("section").value.trim()); } catch(e){}
+
+  const go = $("go"); go.disabled = true; go.textContent = "Uploading…";
+  $("bar").style.display = "block"; $("barfill").style.width = "30%"; say("");
+  try {
+    const data = await toBase64(file);
+    $("barfill").style.width = "60%";
+    // text/plain avoids a CORS preflight, which Apps Script can't answer
+    const resp = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        name, section: $("section").value.trim(), activity, note: $("note").value,
+        filename: file.name, mimeType: file.type, data
+      })
+    });
+    const out = await resp.json();
+    if (!out.ok) throw new Error(out.error || "Upload failed.");
+    $("barfill").style.width = "100%";
+    $("receipt").textContent = file.name + " · " + activity + " · " + new Date().toLocaleString();
+    $("f").style.display = "none"; $("done").style.display = "block";
+  } catch (err) {
+    say((err.message || "Upload failed") + " Check your connection and try again.", "err");
+  } finally {
+    go.disabled = false; go.textContent = "Upload file";
+    setTimeout(() => { $("bar").style.display = "none"; $("barfill").style.width = "0"; }, 400);
+  }
+});
+
+$("again").onclick = () => {
+  setFile(null); $("note").value = ""; $("activity").value = "";
+  $("done").style.display = "none"; $("f").style.display = ""; say("");
+};
+</script>
+</body>
+</html>
