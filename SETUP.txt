@@ -1,0 +1,13 @@
+LEARNER OUTPUT DROP-OFF (Google Sheet backend)
+
+1. Create a Google Sheet. Open Extensions > Apps Script.
+2. Delete the default code and paste in Code.gs (it is a single file; the page is built in).
+3. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
+4. Authorize, copy the /exec link, share it with learners.
+5. To update later: Deploy > Manage deployments > Edit > New version > Deploy.
+
+Download submitted files as a ZIP:
+Reload the Google Sheet, then use the "Drop-off" menu:
+  - Download ALL files as ZIP
+  - Download ZIP by Grade & Section...
+(Over ~45 MB: open the Drive folder "Learner Drop-off Files", Ctrl+A, right-click > Download.)
